@@ -1,0 +1,163 @@
+===================================================================
+   COMBINED SYNCHRONIZATION & DEADLOCK AVOIDANCE STRATEGY (MA3105) 
+   Student: Udit | Roll Number: 2401MC07                           
+===================================================================
+
+Resource Inventory:
+  - Printer : 2 instances (Hierarchical Rank 0)
+  - Scanner : 1 instances (Hierarchical Rank 1)
+  - Disk    : 2 instances (Hierarchical Rank 2)
+
+Enforced Policy: Ascending Rank Request Ordering (No Circular Wait)
+
+===================================================================
+                   OPERATIONAL WORKLOAD CYCLE 1                   
+===================================================================
+
+>> [Cycle 1] Process P0 starting task (Requires: Printer & Scanner) <<
+  [P0] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P0] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P0] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P0] ---> Computation completed successfully.
+  [P0] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P0] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 1] Process P0 finished cycle successfully >>
+
+>> [Cycle 1] Process P1 starting task (Requires: Scanner & Disk) <<
+  [P1] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P1] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P1] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P1] ---> Computation completed successfully.
+  [P1] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P1] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 1] Process P1 finished cycle successfully >>
+
+>> [Cycle 1] Process P2 starting task (Requires: Printer & Disk) <<
+  [P2] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P2] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P2] ---> Critical Section Active: Processing data with Printer & Disk ...
+  [P2] ---> Computation completed successfully.
+  [P2] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P2] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 1] Process P2 finished cycle successfully >>
+
+>> [Cycle 1] Process P3 starting task (Requires: Printer & Scanner) <<
+  [P3] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P3] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P3] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P3] ---> Computation completed successfully.
+  [P3] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P3] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 1] Process P3 finished cycle successfully >>
+
+>> [Cycle 1] Process P4 starting task (Requires: Scanner & Disk) <<
+  [P4] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P4] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P4] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P4] ---> Computation completed successfully.
+  [P4] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P4] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 1] Process P4 finished cycle successfully >>
+
+===================================================================
+                   OPERATIONAL WORKLOAD CYCLE 2                   
+===================================================================
+
+>> [Cycle 2] Process P0 starting task (Requires: Printer & Scanner) <<
+  [P0] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P0] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P0] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P0] ---> Computation completed successfully.
+  [P0] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P0] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 2] Process P0 finished cycle successfully >>
+
+>> [Cycle 2] Process P1 starting task (Requires: Scanner & Disk) <<
+  [P1] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P1] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P1] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P1] ---> Computation completed successfully.
+  [P1] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P1] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 2] Process P1 finished cycle successfully >>
+
+>> [Cycle 2] Process P2 starting task (Requires: Printer & Disk) <<
+  [P2] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P2] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P2] ---> Critical Section Active: Processing data with Printer & Disk ...
+  [P2] ---> Computation completed successfully.
+  [P2] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P2] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 2] Process P2 finished cycle successfully >>
+
+>> [Cycle 2] Process P3 starting task (Requires: Printer & Scanner) <<
+  [P3] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P3] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P3] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P3] ---> Computation completed successfully.
+  [P3] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P3] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 2] Process P3 finished cycle successfully >>
+
+>> [Cycle 2] Process P4 starting task (Requires: Scanner & Disk) <<
+  [P4] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P4] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P4] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P4] ---> Computation completed successfully.
+  [P4] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P4] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 2] Process P4 finished cycle successfully >>
+
+===================================================================
+                   OPERATIONAL WORKLOAD CYCLE 3                   
+===================================================================
+
+>> [Cycle 3] Process P0 starting task (Requires: Printer & Scanner) <<
+  [P0] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P0] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P0] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P0] ---> Computation completed successfully.
+  [P0] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P0] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 3] Process P0 finished cycle successfully >>
+
+>> [Cycle 3] Process P1 starting task (Requires: Scanner & Disk) <<
+  [P1] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P1] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P1] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P1] ---> Computation completed successfully.
+  [P1] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P1] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 3] Process P1 finished cycle successfully >>
+
+>> [Cycle 3] Process P2 starting task (Requires: Printer & Disk) <<
+  [P2] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P2] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P2] ---> Critical Section Active: Processing data with Printer & Disk ...
+  [P2] ---> Computation completed successfully.
+  [P2] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P2] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 3] Process P2 finished cycle successfully >>
+
+>> [Cycle 3] Process P3 starting task (Requires: Printer & Scanner) <<
+  [P3] Requesting Printer [Pool 0 | Rank 0] ... ALLOCATED (Remaining: 1/2)
+  [P3] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P3] ---> Critical Section Active: Processing data with Printer & Scanner ...
+  [P3] ---> Computation completed successfully.
+  [P3] Released   Scanner [Pool 1] ---> Now Available: 1/1
+  [P3] Released   Printer [Pool 0] ---> Now Available: 2/2
+<< [Cycle 3] Process P3 finished cycle successfully >>
+
+>> [Cycle 3] Process P4 starting task (Requires: Scanner & Disk) <<
+  [P4] Requesting Scanner [Pool 1 | Rank 1] ... ALLOCATED (Remaining: 0/1)
+  [P4] Requesting Disk    [Pool 2 | Rank 2] ... ALLOCATED (Remaining: 1/2)
+  [P4] ---> Critical Section Active: Processing data with Scanner & Disk ...
+  [P4] ---> Computation completed successfully.
+  [P4] Released   Disk    [Pool 2] ---> Now Available: 2/2
+  [P4] Released   Scanner [Pool 1] ---> Now Available: 1/1
+<< [Cycle 3] Process P4 finished cycle successfully >>
+
+===================================================================
+ VERIFICATION PASSED: ALL 5 PROCESSES COMPLETED 3 CYCLES SAFELY!
+ Zero deadlocks detected. All resource invariants maintained.
+===================================================================

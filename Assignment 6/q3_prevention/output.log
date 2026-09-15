@@ -1,0 +1,61 @@
+===================================================================
+   DEADLOCK PREVENTION VIA RESOURCE ORDERING PROTOCOL (MA3105)     
+   Student: Udit | Roll Number: 2401MC07                           
+===================================================================
+
++=====================================================================+
+| DEMONSTRATION 1: INCONSISTENT LOCK ORDERING (CIRCULAR WAIT DEADLOCK)|
++=====================================================================+
+Process A Strategy : Lock1 -> Lock2 (Rank 1 then Rank 2)
+Process B Strategy : Lock2 -> Lock1 (Rank 2 then Rank 1 - VIOLATION!)
+
+[Process A] Attempting to acquire Lock1 (Printer) [Rank 1]...
+  [+] GRANTED: Lock1 (Printer) successfully locked by Process A
+[Process B] Attempting to acquire Lock2 (Scanner) [Rank 2]...
+  [+] GRANTED: Lock2 (Scanner) successfully locked by Process B
+
+--- Interleaved execution pause (both hold 1 resource) ---
+
+[Process A] Attempting to acquire Lock2 (Scanner) [Rank 2]...
+  [-] BLOCKED: Lock2 (Scanner) is currently HELD by Process P2 -> WAITING
+[Process B] Attempting to acquire Lock1 (Printer) [Rank 1]...
+  [-] BLOCKED: Lock1 (Printer) is currently HELD by Process P1 -> WAITING
+
+[!] DIAGNOSIS: DEADLOCK CONFIRMED!
+    Process A holds Lock1 and blocks waiting for Lock2.
+    Process B holds Lock2 and blocks waiting for Lock1.
+    Circular dependency: Process A <---> Process B
+
++=====================================================================+
+| DEMONSTRATION 2: STRICT HIERARCHICAL ORDERING (DEADLOCK PREVENTED) |
++=====================================================================+
+Enforced Hierarchy Rule: Lock1 (Rank 1) < Lock2 (Rank 2)
+All processes must strictly acquire in ascending rank order.
+
+[Process A] Attempting to acquire Lock1 (Printer) [Rank 1]...
+  [+] GRANTED: Lock1 (Printer) successfully locked by Process A
+[Process B] Attempting to acquire Lock1 (Printer) [Rank 1]...
+  [-] BLOCKED: Lock1 (Printer) is currently HELD by Process P1 -> WAITING
+[Process A] Attempting to acquire Lock2 (Scanner) [Rank 2]...
+  [+] GRANTED: Lock2 (Scanner) successfully locked by Process A
+[Process A] Both locks secured. Executing critical section workload...
+[Process A] RELEASED Lock2 (Scanner)
+[Process A] RELEASED Lock1 (Printer)
+
+--- Process A finished and released all locks; Process B wakes up ---
+
+[Process B] Attempting to acquire Lock1 (Printer) [Rank 1]...
+  [+] GRANTED: Lock1 (Printer) successfully locked by Process B
+[Process B] Attempting to acquire Lock2 (Scanner) [Rank 2]...
+  [+] GRANTED: Lock2 (Scanner) successfully locked by Process B
+[Process B] Both locks secured. Executing critical section workload...
+[Process B] RELEASED Lock2 (Scanner)
+[Process B] RELEASED Lock1 (Printer)
+
+[+] DIAGNOSIS: EXECUTION COMPLETED SUCCESSFULLY!
+    Strict total ordering eliminated Circular Wait.
+    All processes completed without blocking or hanging.
+
+===================================================================
+ Resource Ordering Protocol demonstration completed successfully.  
+===================================================================
