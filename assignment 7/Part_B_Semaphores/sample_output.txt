@@ -1,0 +1,83 @@
+xv6 release 2
+booting...
+cpu0: starting 1
+cpu0: starting 2
+cpu0: starting 3
+sb: size 1000 sectors 10000 log 30 blocks 9639
+init: starting sh
+
+$ synctest
+
+======================================================
+  xv6 Semaphore Synchronization Test (synctest)       
+======================================================
+Initialized Semaphore 0 with value 1 (Binary Mutex)
+Spawning 3 threads, each incrementing shared_counter 100000 times...
+Expected final counter: 300000
+
+[Main] Created Thread 1 with PID 4
+[Main] Created Thread 2 with PID 5
+[Main] Created Thread 3 with PID 6
+[Thread 1] Started. Performing 100000 synchronized increments...
+[Thread 2] Started. Performing 100000 synchronized increments...
+[Thread 3] Started. Performing 100000 synchronized increments...
+[Thread 1] Finished all increments safely. Exiting.
+[Main] Reaped Thread PID 4 via join()
+[Thread 2] Finished all increments safely. Exiting.
+[Main] Reaped Thread PID 5 via join()
+[Thread 3] Finished all increments safely. Exiting.
+[Main] Reaped Thread PID 6 via join()
+
+------------------------------------------------------
+Final shared_counter Value: 300000
+Expected Value:             300000
+Lost Updates:               0
+------------------------------------------------------
+SUCCESS: Semaphore mutex prevented all race conditions!
+Result is exactly equal to theoretical expectation (300,000).
+
+
+$ prodcons
+
+======================================================
+  Producer-Consumer Bounded Buffer Test (Buffer = 5)  
+======================================================
+Initialized SEM_MUTEX = 1
+Initialized SEM_EMPTY = 5
+Initialized SEM_FULL  = 0
+
+[Producer] Starting production of 10 items...
+[Consumer] Starting consumption of 10 items...
+[Main] Launched Producer Thread (PID 4)
+[Main] Launched Consumer Thread (PID 5)
+
+[Producer] PRODUCED item #1 | Buffer Count: 1/5 (in=1)
+[Consumer] CONSUMED item #1 | Buffer Count: 0/5 (out=1)
+[Producer] PRODUCED item #2 | Buffer Count: 1/5 (in=2)
+[Producer] PRODUCED item #3 | Buffer Count: 2/5 (in=3)
+[Consumer] CONSUMED item #2 | Buffer Count: 1/5 (out=2)
+[Producer] PRODUCED item #4 | Buffer Count: 2/5 (in=4)
+[Consumer] CONSUMED item #3 | Buffer Count: 1/5 (out=3)
+[Producer] PRODUCED item #5 | Buffer Count: 2/5 (in=0)
+[Producer] PRODUCED item #6 | Buffer Count: 3/5 (in=1)
+[Consumer] CONSUMED item #4 | Buffer Count: 2/5 (out=4)
+[Producer] PRODUCED item #7 | Buffer Count: 3/5 (in=2)
+[Consumer] CONSUMED item #5 | Buffer Count: 2/5 (out=0)
+[Producer] PRODUCED item #8 | Buffer Count: 3/5 (in=3)
+[Consumer] CONSUMED item #6 | Buffer Count: 2/5 (out=1)
+[Producer] PRODUCED item #9 | Buffer Count: 3/5 (in=4)
+[Producer] PRODUCED item #10 | Buffer Count: 4/5 (in=0)
+[Producer] Completed producing all items. Exiting.
+[Consumer] CONSUMED item #7 | Buffer Count: 3/5 (out=2)
+[Consumer] CONSUMED item #8 | Buffer Count: 2/5 (out=3)
+[Consumer] CONSUMED item #9 | Buffer Count: 1/5 (out=4)
+[Consumer] CONSUMED item #10 | Buffer Count: 0/5 (out=0)
+[Consumer] Completed consuming all items. Exiting.
+
+------------------------------------------------------
+Final Buffer State: count = 0, in = 0, out = 0
+Verification: No buffer overflow or underflow occurred.
+Producer-Consumer synchronization fully successful!
+------------------------------------------------------
+
+$ 

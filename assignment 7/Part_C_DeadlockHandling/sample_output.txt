@@ -1,0 +1,80 @@
+xv6 release 2
+booting...
+cpu0: starting 1
+cpu0: starting 2
+cpu0: starting 3
+sb: size 1000 sectors 10000 log 30 blocks 9639
+init: starting sh
+
+$ deadlock
+
+######################################################
+     xv6 Deadlock Detection & Avoidance Simulator     
+######################################################
+
+>>> TEST CASE 1: Deadlocked System (Deadlock Detection) <<<
+
+Process |  Allocation     |  Request        |  Available
+--------+-----------------+-----------------+-----------------
+   P0   |  0 1 0          |  0 0 0          |  0 1 0 
+   P1   |  2 0 0          |  2 0 2          |  
+   P2   |  3 0 3          |  0 0 1          |  
+   P3   |  2 1 1          |  1 0 0          |  
+   P4   |  0 0 2          |  0 0 2          |  
+
+RESULT: Deadlock detected! 4 deadlocked process(es):
+Deadlocked Process Set: { P1 P2 P3 P4 }
+
+>>> TEST CASE 2: Safe System (Banker's Safety Check) <<<
+
+Process |  Allocation     |  Need           |  Available
+--------+-----------------+-----------------+-----------------
+   P0   |  0 1 0          |  7 4 3          |  3 3 2 
+   P1   |  2 0 0          |  1 2 2          |  
+   P2   |  3 0 2          |  6 0 0          |  
+   P3   |  2 1 1          |  0 1 1          |  
+   P4   |  0 0 2          |  4 3 1          |  
+
+RESULT: System is in a SAFE STATE!
+Safe Sequence: P1 -> P3 -> P4 -> P0 -> P2
+
+>>> TEST CASE 3: Request Leading to Unsafe State (Banker's Avoidance) <<<
+Process P4 issues resource request [3, 3, 0]...
+Process P4 requesting resources: [ 3 3 0 ]
+SAFETY CHECK FAILED: State would become UNSAFE! Request REJECTED.
+Rolled back state to preserve system safety.
+
+Process |  Allocation     |  Need           |  Available
+--------+-----------------+-----------------+-----------------
+   P0   |  0 1 0          |  7 4 3          |  3 3 2 
+   P1   |  2 0 0          |  1 2 2          |  
+   P2   |  3 0 2          |  6 0 0          |  
+   P3   |  2 1 1          |  0 1 1          |  
+   P4   |  0 0 2          |  4 3 1          |  
+
+
+======================================================
+Task c: Actual xv6 Pipe Circular Wait Simulation       
+======================================================
+Created Pipe 1 (Write end held by Process A)
+Created Pipe 2 (Write end held by Process B)
+Scenario: Process A holds Pipe 1 and waits to read from Pipe 2.
+          Process B holds Pipe 2 and waits to read from Pipe 1.
+
+Pipe Resource Allocation State:
+
+Process |  Allocation     |  Pipe Request   |  Available
+--------+-----------------+-----------------+-----------------
+   P0   |  1 0            |  0 1            |  0 0 
+   P1   |  0 1            |  1 0            |  
+
+DEADLOCK DETECTED! Circular wait identified between:
+ -> Process A (P0)
+ -> Process B (P1)
+Circular dependency: Process A -> Pipe 2 -> Process B -> Pipe 1 -> Process A
+
+######################################################
+             All Deadlock Tests Completed             
+######################################################
+
+$ 

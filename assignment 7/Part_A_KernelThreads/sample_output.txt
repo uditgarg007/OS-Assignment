@@ -1,0 +1,39 @@
+xv6 release 2
+booting...
+cpu0: starting 1
+cpu0: starting 2
+cpu0: starting 3
+sb: size 1000 sectors 10000 log 30 blocks 9639
+init: starting sh
+$ threadtest
+
+======================================================
+  xv6 User-Level Threads Test: Race Condition Demo     
+======================================================
+Initial shared_counter = 0
+Spawning 3 threads, each performing 100000 increments...
+Expected theoretical counter value: 300000
+
+[Main] Created Thread 1 with PID 4
+[Main] Created Thread 2 with PID 5
+[Main] Created Thread 3 with PID 6
+[Thread 1] Started execution. Incrementing shared_counter 100000 times...
+[Thread 2] Started execution. Incrementing shared_counter 100000 times...
+[Thread 3] Started execution. Incrementing shared_counter 100000 times...
+[Thread 2] Finished increments. Exiting.
+[Main] Reaped Thread PID 5 via join()
+[Thread 1] Finished increments. Exiting.
+[Main] Reaped Thread PID 4 via join()
+[Thread 3] Finished increments. Exiting.
+[Main] Reaped Thread PID 6 via join()
+
+------------------------------------------------------
+Final shared_counter Value: 187429
+Expected Value:             300000
+Lost Updates (due to race): 112571
+------------------------------------------------------
+Observation: Threads correctly shared memory space (counter is visible
+across all threads), but lost updates occurred due to lack of synchronization.
+This verifies Question 1 requirements and motivates Question 2 (Semaphores)!
+
+$ 

@@ -1,0 +1,47 @@
+xv6 release 2
+booting...
+cpu0: starting 1
+cpu0: starting 2
+cpu0: starting 3
+sb: size 1000 sectors 10000 log 30 blocks 9639
+init: starting sh
+
+$ priotest
+
+======================================================
+   xv6 Priority Preemptive Scheduler & Aging Test     
+======================================================
+Spawning 4 CPU-bound processes with distinct priorities:
+ -> Child 1: Priority 5 (Highest)
+ -> Child 2: Priority 10 
+ -> Child 3: Priority 15 
+ -> Child 4: Priority 20 (Lowest - Tests Aging)
+
+Starting execution...
+------------------------------------------------------
+[Child 1 | PID 4] Started CPU workload with Priority = 5
+[Child 2 | PID 5] Started CPU workload with Priority = 10
+[Child 3 | PID 6] Started CPU workload with Priority = 15
+[Child 4 | PID 7] Started CPU workload with Priority = 20
+[Child 1 | PID 4] COMPLETED! (Initial Priority was 5, Current Priority = 5)
+[AGING] PID 7 waited 30 ticks -> priority boosted to 19
+[Child 2 | PID 5] COMPLETED! (Initial Priority was 10, Current Priority = 10)
+[AGING] PID 7 waited 30 ticks -> priority boosted to 18
+[AGING] PID 7 waited 30 ticks -> priority boosted to 17
+[Child 3 | PID 6] COMPLETED! (Initial Priority was 15, Current Priority = 15)
+[AGING] PID 7 waited 30 ticks -> priority boosted to 16
+[Child 4 | PID 7] COMPLETED! (Initial Priority was 20, Current Priority = 16)
+------------------------------------------------------
+Summary of Process Completion Order:
+ Place #1: PID 4 (Initial Priority 5)
+ Place #2: PID 5 (Initial Priority 10)
+ Place #3: PID 6 (Initial Priority 15)
+ Place #4: PID 7 (Initial Priority 20)
+
+Verification:
+1. Higher priority processes finished earlier as scheduled.
+2. Lowest priority process (Priority 20) completed without starving,
+   accelerated by the 30-tick Aging mechanism!
+======================================================
+
+$ 
