@@ -16,7 +16,7 @@ and verification artifacts.
 ## Layout
 
 ```text
-ASG-08/
+Assignment 8/
 ├── documentation/          # Assignment handout and consolidated report
 └── exercises/
     ├── 01-virtual-address-translation/
