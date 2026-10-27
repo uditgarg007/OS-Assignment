@@ -1,0 +1,30 @@
+xv6...
+cpu0: starting 0
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ pttest
+=== vmprint at start-up ===
+page table of pid 3 (pgdir at 0xdf23000)
+  virtual     physical    P W U
+  0x0  0xdee2000  1 1 1
+  0x1000  0xdee0000  1 1 0   <- guard (not user), not counted
+  0x2000  0xdedf000  1 1 1
+valid user pages (P and U): 2
+present but not user (guard): 1
+page-table pages: 1 (plus 1 page-directory page)
+=== vmprint after sbrk(4 * 4096) ===
+page table of pid 3 (pgdir at 0xdf23000)
+  virtual     physical    P W U
+  0x0  0xdee2000  1 1 1
+  0x1000  0xdee0000  1 1 0   <- guard (not user), not counted
+  0x2000  0xdedf000  1 1 1
+  0x3000  0xdfbc000  1 1 1
+  0x4000  0xdf76000  1 1 1
+  0x5000  0xdfbf000  1 1 1
+  0x6000  0xdfc0000  1 1 1
+valid user pages (P and U): 6
+present but not user (guard): 1
+page-table pages: 1 (plus 1 page-directory page)
+valid user pages before: 2, after: 6, new: 4
+PASS: exactly four new pages appeared
+$ 

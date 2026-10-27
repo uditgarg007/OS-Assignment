@@ -1,0 +1,13 @@
+xv6...
+cpu0: starting 0
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+init: starting sh
+$ faulttest
+sbrk(32 * 4096) returned 0x3000, faults so far: 0
+touched 5 pages, page faults handled: 5
+PASS: result is 5
+re-touch of mapped page, total faults: 5
+child will now access address above its size...
+pid 4 faulttest: page fault at address 0x2b000 (size 0x23000) -- killing process
+parent still alive after child was killed: PASS
+$ 

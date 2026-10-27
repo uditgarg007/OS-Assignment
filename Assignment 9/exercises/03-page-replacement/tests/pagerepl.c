@@ -1,0 +1,193 @@
+// Assignment 9 Q3: FIFO and LRU page replacement on a reference string.
+//
+// Usage (inside xv6):
+//   pagerepl                       demo: Q3(b) and Q3(c) with the default string
+//   pagerepl <frames> <refs>       run FIFO and LRU, trace every reference
+//   pagerepl table <refs>          table for 3, 4 and 5 frames
+// <refs> is the reference string as numbers separated by commas and/or
+// spaces, e.g.  pagerepl 3 7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1
+// (the xv6 shell accepts only 10 arguments, so commas are the easy way).
+//
+// The same file also builds on a normal Linux host (-DHOST) so the
+// algorithm can be checked against the expected numbers.
+#ifdef HOST
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define printf(fd, ...) printf(__VA_ARGS__)
+#define exit() exit(0)   /* xv6 exit() takes no argument */
+#else
+#include "types.h"
+#include "stat.h"
+#include "user.h"
+#endif
+
+#define MAXREF    64
+#define MAXFRAMES 8
+
+static int defref[] = {7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1};
+#define NDEF ((int)(sizeof(defref)/sizeof(defref[0])))
+
+// Print the frame contents, "-" for an empty frame.
+static void
+showframes(int *frames, int nframes)
+{
+  int i;
+  printf(1, "[");
+  for(i = 0; i < nframes; i++){
+    if(frames[i] < 0)
+      printf(1, " -");
+    else
+      printf(1, " %d", frames[i]);
+  }
+  printf(1, " ]");
+}
+
+// Run one algorithm. lru=0 means FIFO. Returns the number of page faults.
+// If trace is non-zero every reference is printed.
+static int
+simulate(int *refs, int n, int nframes, int lru, int trace)
+{
+  int frames[MAXFRAMES];
+  int loaded[MAXFRAMES];   // FIFO: time the page was loaded
+  int used[MAXFRAMES];     // LRU: time the page was last used
+  int i, j, hit, victim, faults = 0;
+
+  for(j = 0; j < nframes; j++){
+    frames[j] = -1;
+    loaded[j] = used[j] = 0;
+  }
+  for(i = 0; i < n; i++){
+    hit = -1;
+    for(j = 0; j < nframes; j++)
+      if(frames[j] == refs[i]){
+        hit = j;
+        break;
+      }
+    if(hit >= 0){
+      used[hit] = i + 1;            // refresh recency (only matters for LRU)
+    } else {
+      faults++;
+      victim = -1;
+      for(j = 0; j < nframes; j++)  // use a free frame first
+        if(frames[j] < 0){
+          victim = j;
+          break;
+        }
+      if(victim < 0){               // otherwise evict
+        victim = 0;
+        for(j = 1; j < nframes; j++){
+          if(lru ? used[j] < used[victim] : loaded[j] < loaded[victim])
+            victim = j;
+        }
+      }
+      frames[victim] = refs[i];
+      loaded[victim] = i + 1;
+      used[victim] = i + 1;
+    }
+    if(trace){
+      printf(1, "ref %d: ", refs[i]);
+      showframes(frames, nframes);
+      printf(1, hit >= 0 ? "  hit\n" : "  FAULT\n");
+    }
+  }
+  return faults;
+}
+
+static void
+print_ratio(int hits, int total)
+{
+  int r = hits * 10000 / total;     // hit ratio in percent, 2 decimals
+  printf(1, "%d.%d%d%%", r / 100, (r / 10) % 10, r % 10);
+}
+
+static void
+runone(int *refs, int n, int nframes)
+{
+  int ff, fl;
+  printf(1, "\n=== %d frames, %d references ===\n", nframes, n);
+  printf(1, "--- FIFO ---\n");
+  ff = simulate(refs, n, nframes, 0, 1);
+  printf(1, "FIFO page faults: %d\n", ff);
+  printf(1, "--- LRU ---\n");
+  fl = simulate(refs, n, nframes, 1, 1);
+  printf(1, "LRU page faults: %d\n", fl);
+}
+
+static void
+table(int *refs, int n)
+{
+  int f, ff, fl;
+  printf(1, "\nFrames | FIFO faults  FIFO hit ratio | LRU faults  LRU hit ratio\n");
+  printf(1, "-------+-----------------------------+---------------------------\n");
+  for(f = 3; f <= 5; f++){
+    ff = simulate(refs, n, f, 0, 0);
+    fl = simulate(refs, n, f, 1, 0);
+    printf(1, "   %d   |     %d          ", f, ff);
+    print_ratio(n - ff, n);
+    printf(1, "      |    %d          ", fl);
+    print_ratio(n - fl, n);
+    printf(1, "\n");
+  }
+}
+
+// Parse argv[from..argc-1] into refs[]: numbers separated by ',' or space.
+static int
+parserefs(int argc, char *argv[], int from, int *refs)
+{
+  int n = 0, i, cur, have;
+  char *c;
+
+  for(i = from; i < argc; i++){
+    cur = 0;
+    have = 0;
+    for(c = argv[i]; ; c++){
+      if(*c >= '0' && *c <= '9'){
+        cur = cur * 10 + (*c - '0');
+        have = 1;
+      } else {
+        if(have && n < MAXREF)
+          refs[n++] = cur;
+        cur = 0;
+        have = 0;
+        if(*c == 0)
+          break;
+      }
+    }
+  }
+  return n;
+}
+
+int
+main(int argc, char *argv[])
+{
+  int refs[MAXREF];
+  int n, nframes;
+
+  if(argc <= 1){
+    runone(defref, NDEF, 3);
+    table(defref, NDEF);
+    exit();
+  }
+  if(strcmp(argv[1], "table") == 0){
+    n = parserefs(argc, argv, 2, refs);
+    if(n == 0){
+      printf(1, "usage: pagerepl table <ref string>\n");
+      exit();
+    }
+    table(refs, n);
+    exit();
+  }
+  nframes = atoi(argv[1]);
+  if(nframes < 1 || nframes > MAXFRAMES || argc < 3){
+    printf(1, "usage: pagerepl <frames 1-%d> <reference string>\n", MAXFRAMES);
+    exit();
+  }
+  n = parserefs(argc, argv, 2, refs);
+  if(n == 0){
+    printf(1, "usage: pagerepl <frames> <reference string>\n");
+    exit();
+  }
+  runone(refs, n, nframes);
+  exit();
+}

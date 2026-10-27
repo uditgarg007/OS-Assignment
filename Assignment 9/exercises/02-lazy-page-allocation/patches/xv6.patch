@@ -1,0 +1,266 @@
+--- a/vm.c	2026-10-27 15:17:21.430520123 +0530
++++ b/vm.c	2026-10-27 15:17:47.538656676 +0530
+@@ -57,7 +57,7 @@
+ // Create PTEs for virtual addresses starting at va that refer to
+ // physical addresses starting at pa. va and size might not
+ // be page-aligned.
+-static int
++int
+ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+ {
+   char *a, *last;
+@@ -216,6 +216,16 @@
+   return 0;
+ }
+ 
++// Assignment 9 Q2: is the page containing va already mapped (present)?
++// Used by the page-fault handler to tell "never allocated" (lazy) from
++// "mapped but protected" (e.g. the stack guard page).
++int
++uvmpresent(pde_t *pgdir, uint va)
++{
++  pte_t *pte = walkpgdir(pgdir, (void*)va, 0);
++  return pte != 0 && (*pte & PTE_P);
++}
++
+ // Allocate page tables and physical memory to grow process from oldsz to
+ // newsz, which need not be page aligned.  Returns new size or 0 on error.
+ int
+@@ -267,6 +277,8 @@
+     if(!pte)
+       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
+     else if((*pte & PTE_P) != 0){
++      // Assignment 9 Q2: pages that were never touched (lazy sbrk) have no
++      // present PTE and are skipped by this test; they own no frame.
+       pa = PTE_ADDR(*pte);
+       if(pa == 0)
+         panic("kfree");
+@@ -323,10 +335,13 @@
+   if((d = setupkvm()) == 0)
+     return 0;
+   for(i = 0; i < sz; i += PGSIZE){
++    // Assignment 9 Q2: with lazy allocation a page below sz may never have
++    // been allocated. Skip it (no page table, or PTE not present) instead of
++    // panicking; the child will fault it in on first use too.
+     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+-      panic("copyuvm: pte should exist");
++      continue;
+     if(!(*pte & PTE_P))
+-      panic("copyuvm: page not present");
++      continue;
+     pa = PTE_ADDR(*pte);
+     flags = PTE_FLAGS(*pte);
+     if((mem = kalloc()) == 0)
+--- a/trap.c	2026-10-27 15:17:21.430388923 +0530
++++ b/trap.c	2026-10-27 15:17:47.538746641 +0530
+@@ -78,6 +78,40 @@
+     lapiceoi();
+     break;
+ 
++  // Assignment 9 Q2: page-fault handler for lazy allocation.
++  case T_PGFLT: {
++    uint va = rcr2();
++    struct proc *p = myproc();
++    char *mem;
++
++    // Valid lazy address: inside the process size, not already mapped.
++    if(p != 0 && va < p->sz && !uvmpresent(p->pgdir, va)){
++      mem = kalloc();
++      if(mem != 0){
++        memset(mem, 0, PGSIZE);
++        if(mappages(p->pgdir, (char*)PGROUNDDOWN(va), PGSIZE, V2P(mem),
++                    PTE_W|PTE_U) == 0){
++          p->pgfaults++;      // count the fault, then resume the process
++          break;
++        }
++        kfree(mem);
++      }
++      cprintf("pid %d %s: out of memory for lazy page at 0x%x\n",
++              p->pid, p->name, va);
++    }
++    if(p == 0 || (tf->cs&3) == 0){
++      // Fault in the kernel on a bad address: kernel bug.
++      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
++              tf->trapno, cpuid(), tf->eip, va);
++      panic("trap");
++    }
++    // Invalid address (>= sz or protected): kill only this process.
++    cprintf("pid %d %s: page fault at address 0x%x (size 0x%x) -- killing process\n",
++            p->pid, p->name, va, p->sz);
++    p->killed = 1;
++    break;
++  }
++
+   //PAGEBREAK: 13
+   default:
+     if(myproc() == 0 || (tf->cs&3) == 0){
+--- a/proc.h	2026-10-27 15:17:21.430116946 +0530
++++ b/proc.h	2026-10-27 15:17:47.538314766 +0530
+@@ -49,6 +49,7 @@
+   struct file *ofile[NOFILE];  // Open files
+   struct inode *cwd;           // Current directory
+   char name[16];               // Process name (debugging)
++  int pgfaults;                // Assignment 9 Q2: lazy-allocation page faults handled
+ };
+ 
+ // Process memory is laid out contiguously, low addresses first:
+--- a/proc.c	2026-10-27 15:17:21.430103820 +0530
++++ b/proc.c	2026-10-27 15:17:47.538360787 +0530
+@@ -88,6 +88,7 @@
+ found:
+   p->state = EMBRYO;
+   p->pid = nextpid++;
++  p->pgfaults = 0;   // Assignment 9 Q2: fresh process has handled no faults
+ 
+   release(&ptable.lock);
+ 
+--- a/sysproc.c	2026-10-27 15:17:21.430356050 +0530
++++ b/sysproc.c	2026-10-27 15:17:47.538707182 +0530
+@@ -51,11 +51,28 @@
+   if(argint(0, &n) < 0)
+     return -1;
+   addr = myproc()->sz;
++  // Assignment 9 Q2: lazy allocation. Growing only bumps sz; the page
++  // fault handler in trap.c allocates a frame when a page is first used.
++  if(n > 0){
++    if(addr + n >= KERNBASE || addr + n < addr)
++      return -1;
++    myproc()->sz += n;
++    return addr;
++  }
++  // Shrinking still frees pages immediately.
+   if(growproc(n) < 0)
+     return -1;
+   return addr;
+ }
+ 
++// Assignment 9 Q2: number of lazy-allocation page faults handled for
++// the calling process.
++int
++sys_getfaults(void)
++{
++  return myproc()->pgfaults;
++}
++
+ int
+ sys_sleep(void)
+ {
+--- a/syscall.c	2026-10-27 15:17:21.430323890 +0530
++++ b/syscall.c	2026-10-27 15:17:47.538052983 +0530
+@@ -84,6 +84,7 @@
+ 
+ extern int sys_chdir(void);
+ extern int sys_close(void);
++extern int sys_getfaults(void);   // Assignment 9
+ extern int sys_dup(void);
+ extern int sys_exec(void);
+ extern int sys_exit(void);
+@@ -126,6 +127,7 @@
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_getfaults]   sys_getfaults,   // Assignment 9
+ };
+ 
+ void
+--- a/syscall.h	2026-10-27 15:17:21.430333523 +0530
++++ b/syscall.h	2026-10-27 15:17:47.537946973 +0530
+@@ -20,3 +20,4 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_getfaults 22   // Assignment 9: new system call
+--- a/defs.h	2026-10-27 15:17:21.429599034 +0530
++++ b/defs.h	2026-10-27 15:17:47.538415346 +0530
+@@ -177,6 +177,8 @@
+ char*           uva2ka(pde_t*, char*);
+ int             allocuvm(pde_t*, uint, uint);
+ int             deallocuvm(pde_t*, uint, uint);
++int             mappages(pde_t*, void*, uint, uint, int);   // Assignment 9 Q2 (was static)
++int             uvmpresent(pde_t*, uint);                  // Assignment 9 Q2
+ void            freevm(pde_t*);
+ void            inituvm(pde_t*, char*, uint);
+ int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
+--- a/user.h	2026-10-27 15:17:21.430464657 +0530
++++ b/user.h	2026-10-27 15:17:47.538101182 +0530
+@@ -23,6 +23,7 @@
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int getfaults(void);   // Assignment 9
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+--- a/usys.S	2026-10-27 15:17:21.430497175 +0530
++++ b/usys.S	2026-10-27 15:17:47.538140498 +0530
+@@ -29,3 +29,4 @@
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(getfaults)   # Assignment 9
+--- a/Makefile	2026-10-27 15:17:21.429465315 +0530
++++ b/Makefile	2026-10-27 15:17:47.538264106 +0530
+@@ -169,6 +169,7 @@
+ 	_cat\
+ 	_echo\
+ 	_forktest\
++	_faulttest\
+ 	_grep\
+ 	_init\
+ 	_kill\
+@@ -248,7 +249,7 @@
+ # check in that version.
+ 
+ EXTRA=\
+-	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
++	mkfs.c ulib.c user.h cat.c echo.c forktest.c faulttest.c grep.c kill.c\
+ 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+ 	printf.c umalloc.c\
+ 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
+--- /dev/null
++++ b/faulttest.c
+@@ -0,0 +1,44 @@
++// Assignment 9 Q2: test program for lazy allocation.
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++
++#define PG 4096
++
++int
++main(int argc, char *argv[])
++{
++  char *p;
++  int i, pid, f0, faults;
++  int pages[5] = {0, 3, 7, 12, 31};
++
++  f0 = getfaults();
++  p = sbrk(32 * PG);   // lazy: nothing is allocated yet
++  printf(1, "sbrk(32 * 4096) returned 0x%x, faults so far: %d\n", p, getfaults() - f0);
++
++  for(i = 0; i < 5; i++)
++    p[pages[i] * PG] = 'x';   // first touch of 5 distinct pages
++
++  faults = getfaults() - f0;
++  printf(1, "touched 5 pages, page faults handled: %d\n", faults);
++  if(faults == 5)
++    printf(1, "PASS: result is 5\n");
++  else
++    printf(1, "FAIL: expected 5\n");
++
++  // Touch a page again: already mapped, no new fault.
++  p[0] = 'y';
++  printf(1, "re-touch of mapped page, total faults: %d\n", getfaults() - f0);
++
++  // Access beyond the allocated size: only that process must die.
++  printf(1, "child will now access address above its size...\n");
++  pid = fork();
++  if(pid == 0){
++    p[40 * PG] = 'z';   // 32 pages were allocated, page 40 is invalid
++    printf(1, "FAIL: child survived an invalid access\n");
++    exit();
++  }
++  wait();
++  printf(1, "parent still alive after child was killed: PASS\n");
++  exit();
++}

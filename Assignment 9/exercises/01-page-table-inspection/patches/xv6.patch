@@ -1,0 +1,172 @@
+--- a/vm.c	2026-10-27 15:17:21.430520123 +0530
++++ b/vm.c	2026-10-27 15:22:53.252860552 +0530
+@@ -216,6 +216,52 @@
+   return 0;
+ }
+ 
++// Assignment 9 Q1: print the user part of a page directory.
++// Walks the two-level page table the same way freevm() does (outer loop
++// over page-directory entries) and uses walkpgdir() for the inner lookup.
++// Only addresses below KERNBASE are visited.
++// A "valid user page" is a present mapping with PTE_U set. A present
++// mapping without PTE_U (the stack guard page that exec() makes with
++// clearpteu) is printed and marked "guard (not user)" but is NOT counted.
++// Returns the number of valid user pages.
++int
++vmprint(pde_t *pgdir)
++{
++  uint va;
++  uint pdi;
++  uint npages = 0;   // valid user pages (present and PTE_U)
++  uint nguard = 0;   // present but not user-accessible
++  uint nptpages = 0; // second-level page-table pages in use
++  pte_t *pte;
++
++  cprintf("page table of pid %d (pgdir at 0x%x)\n", myproc()->pid, V2P(pgdir));
++  cprintf("  virtual     physical    P W U\n");
++  for(pdi = 0; pdi < PDX(KERNBASE); pdi++){
++    if(!(pgdir[pdi] & PTE_P))
++      continue;               // no page table here
++    nptpages++;
++    for(va = pdi << PDXSHIFT; va < ((pdi + 1) << PDXSHIFT); va += PGSIZE){
++      pte = walkpgdir(pgdir, (void*)va, 0);
++      if(pte == 0 || !(*pte & PTE_P))
++        continue;
++      cprintf("  0x%x  0x%x  %d %d %d", va, PTE_ADDR(*pte),
++              (*pte & PTE_P) ? 1 : 0, (*pte & PTE_W) ? 1 : 0,
++              (*pte & PTE_U) ? 1 : 0);
++      if(*pte & PTE_U){
++        npages++;
++        cprintf("\n");
++      } else {
++        nguard++;
++        cprintf("   <- guard (not user), not counted\n");
++      }
++    }
++  }
++  cprintf("valid user pages (P and U): %d\n", npages);
++  cprintf("present but not user (guard): %d\n", nguard);
++  cprintf("page-table pages: %d (plus 1 page-directory page)\n", nptpages);
++  return npages;
++}
++
+ // Allocate page tables and physical memory to grow process from oldsz to
+ // newsz, which need not be page aligned.  Returns new size or 0 on error.
+ int
+--- a/defs.h	2026-10-27 15:17:21.429599034 +0530
++++ b/defs.h	2026-10-27 15:17:47.537746682 +0530
+@@ -177,6 +177,7 @@
+ char*           uva2ka(pde_t*, char*);
+ int             allocuvm(pde_t*, uint, uint);
+ int             deallocuvm(pde_t*, uint, uint);
++int             vmprint(pde_t*);   // Assignment 9 Q1
+ void            freevm(pde_t*);
+ void            inituvm(pde_t*, char*, uint);
+ int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
+--- a/syscall.c	2026-10-27 15:17:21.430323890 +0530
++++ b/syscall.c	2026-10-27 15:17:47.537465060 +0530
+@@ -84,6 +84,7 @@
+ 
+ extern int sys_chdir(void);
+ extern int sys_close(void);
++extern int sys_vmprint(void);   // Assignment 9
+ extern int sys_dup(void);
+ extern int sys_exec(void);
+ extern int sys_exit(void);
+@@ -126,6 +127,7 @@
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_vmprint]   sys_vmprint,   // Assignment 9
+ };
+ 
+ void
+--- a/syscall.h	2026-10-27 15:17:21.430333523 +0530
++++ b/syscall.h	2026-10-27 15:17:47.537304048 +0530
+@@ -20,3 +20,4 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_vmprint 22   // Assignment 9: new system call
+--- a/sysproc.c	2026-10-27 15:17:21.430356050 +0530
++++ b/sysproc.c	2026-10-27 15:17:47.537793612 +0530
+@@ -56,6 +56,14 @@
+   return addr;
+ }
+ 
++// Assignment 9 Q1: print the page table of the calling process.
++// Returns the number of valid user pages.
++int
++sys_vmprint(void)
++{
++  return vmprint(myproc()->pgdir);
++}
++
+ int
+ sys_sleep(void)
+ {
+--- a/user.h	2026-10-27 15:17:21.430464657 +0530
++++ b/user.h	2026-10-27 15:17:47.537513882 +0530
+@@ -23,6 +23,7 @@
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int vmprint(void);   // Assignment 9
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+--- a/usys.S	2026-10-27 15:17:21.430497175 +0530
++++ b/usys.S	2026-10-27 15:17:47.537558845 +0530
+@@ -29,3 +29,4 @@
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(vmprint)   # Assignment 9
+--- a/Makefile	2026-10-27 15:17:21.429465315 +0530
++++ b/Makefile	2026-10-27 15:17:47.537688376 +0530
+@@ -169,6 +169,7 @@
+ 	_cat\
+ 	_echo\
+ 	_forktest\
++	_pttest\
+ 	_grep\
+ 	_init\
+ 	_kill\
+@@ -248,7 +249,7 @@
+ # check in that version.
+ 
+ EXTRA=\
+-	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
++	mkfs.c ulib.c user.h cat.c echo.c forktest.c pttest.c grep.c kill.c\
+ 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+ 	printf.c umalloc.c\
+ 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
+--- /dev/null
++++ b/pttest.c
+@@ -0,0 +1,26 @@
++// Assignment 9 Q1: test program for the vmprint() system call.
++#include "types.h"
++#include "stat.h"
++#include "user.h"
++
++int
++main(int argc, char *argv[])
++{
++  int before, after;
++
++  printf(1, "=== vmprint at start-up ===\n");
++  before = vmprint();
++
++  sbrk(4 * 4096);
++
++  printf(1, "=== vmprint after sbrk(4 * 4096) ===\n");
++  after = vmprint();
++
++  printf(1, "valid user pages before: %d, after: %d, new: %d\n",
++         before, after, after - before);
++  if(after - before == 4)
++    printf(1, "PASS: exactly four new pages appeared\n");
++  else
++    printf(1, "FAIL: expected 4 new pages\n");
++  exit();
++}
