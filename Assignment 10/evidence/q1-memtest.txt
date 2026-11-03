@@ -1,0 +1,12 @@
+memtest
+memtest
+Q1: physical page allocation statistics
+Before allocation:
+Physical pages: total=57000 available=56789
+Lifetime pages: allocated=425 freed=214 current=211
+After allocating and touching 3 pages:
+Physical pages: total=57000 available=56786
+Lifetime pages: allocated=428 freed=214 current=214
+After releasing 3 pages:
+Physical pages: total=57000 available=56789
+Lifetime pages: allocated=428 freed=217 current=211

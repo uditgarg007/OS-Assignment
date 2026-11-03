@@ -9,3 +9,4 @@ Repository containing coursework and lab assignments for Operating Systems.
 - [**Assignment 7**](https://github.com/uditgarg007/OS-Assignment/tree/main/Assignment%207): Kernel threads, semaphores, deadlock handling, and priority scheduling.
 - [**Assignment 8**](https://github.com/uditgarg007/OS-Assignment/tree/main/Assignment%208): xv6 memory management, including address translation, physical memory statistics, page-table visualization, and lazy allocation.
 - [**Assignment 9**](./Assignment%209): xv6 virtual-memory exercises covering page-table inspection, lazy page allocation, and FIFO/LRU page replacement.
+- [**Assignment 10**](./Assignment%2010): xv6 physical-page statistics, virtual-to-physical translation, page protection, and FIFO/LRU/Optimal page replacement, with source, test programs, report, and QEMU screenshots.

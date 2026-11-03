@@ -1,0 +1,6 @@
+vttest
+vttest
+Q2: virtual-to-physical address translation
+Mapped address:   VA=0x3000 -> PA=0xDFBC000
+Address + 1 byte: VA=0x3001 -> PA=0xDFBC001
+Unmapped address: VA=0x7FFFF000 -> result=-1 (expected -1)

@@ -1,0 +1,10 @@
+pagetest
+pagetest
+Q3: page information and read-only protection
+Before protection:
+pageinfo: va=0x3000 frame=57276 (pa=0xdfbc000) flags=[P=1 W=1 U=1]
+After setreadonly:
+pageinfo: va=0x3000 frame=57276 (pa=0xdfbc000) flags=[P=1 W=0 U=1]
+Child: attempting write to the read-only page...
+pid 4 pagetest: trap 14 err 7 on cpu 0 eip 0xa7 addr 0x3000--kill proc
+Parent: child was terminated by the expected write page fault.
